@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teamスケジュール</title>
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="appbar">
+    <div class="brand">
+      <span class="fa fa-calendar-check-o"></span>
+      <span>Team<b>スケジュール</b></span>
+    </div>
+
+    <div class="view-tabs">
+      <button class="view-btn" data-view="month"><span class="fa fa-th"></span> 月</button>
+      <button class="view-btn" data-view="week"><span class="fa fa-calendar"></span> 週</button>
+      <button class="view-btn" data-view="dashboard"><span class="fa fa-bar-chart"></span> 分析</button>
+    </div>
+
+    <div id="auth-box" class="auth-box"></div>
+  </header>
+
+  <div class="toolbar">
+    <div id="nav-group" class="nav-group">
+      <button id="btn-today" class="btn-ghost">今日</button>
+      <button id="btn-prev" class="icon-btn" aria-label="前へ"><span class="fa fa-chevron-left"></span></button>
+      <button id="btn-next" class="icon-btn" aria-label="次へ"><span class="fa fa-chevron-right"></span></button>
+    </div>
+    <h1 id="period-label" class="period-label"></h1>
+    <div class="tool-right">
+      <button id="btn-import" class="btn-ghost" title="JSON読み込み"><span class="fa fa-upload"></span></button>
+      <button id="btn-export" class="btn-ghost" title="JSON書き出し"><span class="fa fa-download"></span></button>
+      <button id="btn-new" class="btn-primary"><span class="fa fa-plus"></span> 新規予定</button>
+    </div>
+  </div>
+
+  <div id="filter-bar" class="filter-bar"></div>
+
+  <main id="view" class="view"></main>
+
+  <!-- 予定モーダル -->
+  <div id="modal" class="modal">
+    <div id="modal-backdrop" class="modal-backdrop"></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <h2 id="modal-title">予定を追加</h2>
+      <label class="field">
+        <span>タイトル</span>
+        <input id="f-title" type="text" placeholder="例: チーム定例">
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>カテゴリ</span>
+          <select id="f-cat"></select>
+        </label>
+        <label class="field checkbox">
+          <input id="f-allday" type="checkbox"> <span>終日</span>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">
+          <span>開始</span>
+          <input id="f-start" type="datetime-local">
+        </label>
+        <label class="field">
+          <span>終了</span>
+          <input id="f-end" type="datetime-local">
+        </label>
+      </div>
+      <label class="field">
+        <span>場所</span>
+        <input id="f-location" type="text" placeholder="任意">
+      </label>
+      <label class="field">
+        <span>メモ</span>
+        <textarea id="f-notes" rows="2" placeholder="任意"></textarea>
+      </label>
+      <label class="field checkbox">
+        <input id="f-done" type="checkbox"> <span>完了済みにする</span>
+      </label>
+      <p id="f-error" class="form-error"></p>
+      <div class="modal-actions">
+        <button id="btn-delete" class="btn-danger"><span class="fa fa-trash"></span> 削除</button>
+        <div class="spacer"></div>
+        <button id="btn-cancel" class="btn-ghost">キャンセル</button>
+        <button id="btn-save" class="btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
