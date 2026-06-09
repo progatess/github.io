@@ -68,78 +68,102 @@ function renderMonth(root, state, cb) {
   root.appendChild(wrap);
 }
 
-// ---------------- 週表示（24h タイムグリッド） ----------------
+// 指定メンバー・指定日に重なる予定（終日含む）
+function eventsForMemberDay(events, day, memberId) {
+  const d = ymd(day);
+  return events.filter((ev) => {
+    const evMember = ev.memberId || null;
+    if (evMember !== memberId) return false;
+    const s = new Date(ev.start), e = new Date(ev.end);
+    return ymd(s) <= d && d <= ymd(e);
+  }).sort((a, b) => new Date(a.start) - new Date(b.start));
+}
+
+// ---------------- 週表示（メンバー × 曜日 グリッド） ----------------
 function renderWeek(root, state, cb) {
-  const { current, events, categories } = state;
+  const { current, events, categories, members } = state;
   const weekStart = startOfWeek(current);
+  const weekEnd = addDays(weekStart, 7);
   const today = new Date();
-  const HOUR_H = 44; // 1時間の高さ(px)
 
-  const wrap = el("div", { class: "week" });
+  // この週に重なる予定だけ対象
+  const weekEvents = events.filter((ev) => {
+    const s = new Date(ev.start), e = new Date(ev.end);
+    return e >= weekStart && s < weekEnd;
+  });
 
-  // ヘッダ（曜日＋日付）
-  const head = el("div", { class: "week-head" });
-  head.appendChild(el("div", { class: "time-gutter" }, ""));
+  // 行＝メンバー。未割り当ての予定があれば末尾に専用行を追加
+  const rows = members.slice();
+  if (weekEvents.some((ev) => !ev.memberId))
+    rows.push({ id: null, name: "未割り当て", color: "#94a3b8" });
+
+  const wrap = el("div", { class: "wres" });
+
+  // 件数キャプション
+  wrap.appendChild(el("div", { class: "wres-caption" }, `${weekEvents.length} 件`));
+
+  const scroll = el("div", { class: "wres-scroll" });
+  const grid = el("div", { class: "wres-grid" });
+
+  // ヘッダ行
+  grid.appendChild(el("div", { class: "wres-corner" }, "メンバー"));
   for (let i = 0; i < 7; i++) {
     const day = addDays(weekStart, i);
-    head.appendChild(el("div", {
-      class: `week-day-head${sameDay(day, today) ? " today" : ""}`,
-    }, [
+    const cls = `wres-dayhead dow-${i}${sameDay(day, today) ? " today" : ""}`;
+    grid.appendChild(el("div", { class: cls }, [
       el("span", { class: "wd-name" }, WEEKDAYS[i]),
       el("span", { class: "wd-date" }, `${day.getMonth() + 1}/${day.getDate()}`),
     ]));
   }
-  wrap.appendChild(head);
 
-  const scroll = el("div", { class: "week-scroll" });
-  const grid = el("div", { class: "week-grid", style: `--hour-h:${HOUR_H}px` });
+  // メンバー行
+  rows.forEach((m) => {
+    grid.appendChild(el("div", {
+      class: "wres-member",
+      title: m.id ? "クリックで編集" : "",
+      onclick: () => { if (m.id) cb.onEditMember(m); },
+    }, [
+      el("span", { class: "dot", style: `background:${m.color || "#64748b"}` }),
+      el("span", { class: "mname" }, m.name),
+    ]));
 
-  // 時間軸
-  const gutter = el("div", { class: "time-gutter-col" });
-  for (let h = 0; h < 24; h++)
-    gutter.appendChild(el("div", { class: "time-label", style: `height:${HOUR_H}px` },
-      `${pad(h)}:00`));
-  grid.appendChild(gutter);
-
-  // 各日カラム
-  for (let i = 0; i < 7; i++) {
-    const day = addDays(weekStart, i);
-    const col = el("div", { class: "day-col" });
-    for (let h = 0; h < 24; h++) {
-      col.appendChild(el("div", {
-        class: "hour-slot", style: `height:${HOUR_H}px`,
+    for (let i = 0; i < 7; i++) {
+      const day = addDays(weekStart, i);
+      const weekend = i === 0 || i === 6;
+      const cell = el("div", {
+        class: `wres-cell${weekend ? " weekend" : ""}${sameDay(day, today) ? " today" : ""}`,
         onclick: (e) => {
-          if (e.target.closest(".wevent")) return;
-          const d = new Date(day); d.setHours(h, 0, 0, 0);
-          cb.onSlotClick(d);
+          if (e.target.closest(".rev")) return;
+          const d = new Date(day); d.setHours(9, 0, 0, 0);
+          cb.onSlotClick(d, m.id);
         },
-      }));
+      });
+      eventsForMemberDay(weekEvents, day, m.id).forEach((ev) => {
+        const color = colorOf(categories, ev.categoryId);
+        cell.appendChild(el("div", {
+          class: `rev${ev.done ? " done" : ""}`,
+          style: `background:${tint(color, .16)};border-left:3px solid ${color}`,
+          title: ev.title,
+          onclick: () => cb.onEventClick(ev),
+        }, [
+          el("div", { class: "rev-time" },
+            ev.allDay ? "終日" : `${hm(ev.start)} - ${hm(ev.end)}`),
+          el("div", { class: "rev-title" }, ev.title),
+        ]));
+      });
+      grid.appendChild(cell);
     }
-    // この日の時間指定予定を配置
-    const dayEvents = events.filter((ev) => !ev.allDay && sameDay(new Date(ev.start), day));
-    dayEvents.forEach((ev) => {
-      const s = new Date(ev.start), e = new Date(ev.end);
-      const top = (s.getHours() + s.getMinutes() / 60) * HOUR_H;
-      const endH = sameDay(e, day) ? e.getHours() + e.getMinutes() / 60 : 24;
-      const height = Math.max(22, (endH - (s.getHours() + s.getMinutes() / 60)) * HOUR_H);
-      const color = colorOf(categories, ev.categoryId);
-      col.appendChild(el("div", {
-        class: `wevent${ev.done ? " done" : ""}`,
-        style: `top:${top}px;height:${height}px;background:${tint(color, .18)};border-left:3px solid ${color}`,
-        onclick: () => cb.onEventClick(ev),
-      }, [
-        el("div", { class: "we-title" }, ev.title),
-        el("div", { class: "we-time" }, `${hm(ev.start)}–${hm(ev.end)}`),
-      ]));
-    });
-    grid.appendChild(col);
-  }
+  });
+
   scroll.appendChild(grid);
   wrap.appendChild(scroll);
-  root.appendChild(wrap);
 
-  // 8時あたりまでスクロール
-  requestAnimationFrame(() => { scroll.scrollTop = 7 * HOUR_H; });
+  // メンバー追加
+  wrap.appendChild(el("button", {
+    class: "add-member", onclick: () => cb.onAddMember(),
+  }, [el("span", { class: "fa fa-user-plus" }), " メンバーを追加"]));
+
+  root.appendChild(wrap);
 }
 
 export function renderCalendar(root, state, cb) {

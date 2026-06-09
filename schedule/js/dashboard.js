@@ -92,6 +92,23 @@ export function renderDashboard(root, state) {
     options: { plugins: { legend: { position: "bottom" } }, cutout: "60%" },
   }));
 
+  // 1b. メンバー別 予定件数
+  const members = state.members || [];
+  if (members.length) {
+    const byMember = {};
+    events.forEach((e) => { const k = e.memberId || "_un"; byMember[k] = (byMember[k] || 0) + 1; });
+    const labels = members.map((m) => m.name);
+    const vals = members.map((m) => byMember[m.id] || 0);
+    const colors = members.map((m) => m.color || "#4f6df5");
+    if (byMember["_un"]) { labels.push("未割り当て"); vals.push(byMember["_un"]); colors.push("#94a3b8"); }
+    const cm = mkCanvas("メンバー別 予定件数", true);
+    charts.push(new Chart(cm, {
+      type: "bar",
+      data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 6 }] },
+      options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } },
+    }));
+  }
+
   // 2. 曜日別 予定件数
   const byDow = [0, 0, 0, 0, 0, 0, 0];
   events.forEach((e) => { byDow[new Date(e.start).getDay()]++; });

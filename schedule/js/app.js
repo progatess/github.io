@@ -17,6 +17,7 @@ const state = {
   range: "month",      // dashboard 用
   events: [],
   categories: [],
+  members: [],
   filter: new Set(),   // 非表示にするカテゴリ ID
   user: null,
 };
@@ -56,8 +57,10 @@ function render() {
   } else {
     renderCalendar(main, { ...state, events: visibleEvents() }, {
       onDayClick: (day) => openModal(null, day),
-      onSlotClick: (dt) => openModal(null, dt),
+      onSlotClick: (dt, memberId) => openModal(null, dt, memberId),
       onEventClick: (ev) => openModal(ev),
+      onAddMember: addMember,
+      onEditMember: editMember,
     });
   }
 }
@@ -85,13 +88,19 @@ function renderFilterBar() {
 // ---------------- モーダル ----------------
 let editingId = null;
 
-function openModal(ev = null, presetDate = null) {
+function openModal(ev = null, presetDate = null, presetMember = null) {
   editingId = ev ? ev.id : null;
   $("modal-title").textContent = ev ? "予定を編集" : "予定を追加";
   $("f-title").value = ev ? ev.title : "";
   $("f-cat").innerHTML = state.categories
     .map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
   $("f-cat").value = ev ? ev.categoryId : state.categories[0]?.id;
+
+  // 担当者
+  $("f-member").innerHTML = state.members
+    .map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
+  $("f-member").value = ev ? (ev.memberId || state.members[0]?.id)
+    : (presetMember || state.members[0]?.id);
 
   let start, end;
   if (ev) { start = new Date(ev.start); end = new Date(ev.end); }
@@ -130,6 +139,7 @@ async function saveModal() {
     end: end.toISOString(),
     allDay: $("f-allday").checked,
     categoryId: $("f-cat").value,
+    memberId: $("f-member").value,
     location: $("f-location").value.trim(),
     notes: $("f-notes").value.trim(),
     done: $("f-done").checked,
@@ -148,6 +158,30 @@ async function deleteEvent() {
   if (!confirm("この予定を削除しますか？")) return;
   await store.deleteEvent(editingId);
   closeModal();
+}
+
+// ---------------- メンバー管理 ----------------
+async function addMember() {
+  const name = prompt("追加するメンバーの名前");
+  if (!name || !name.trim()) return;
+  const palette = ["#4f6df5", "#16a34a", "#db2777", "#f59e0b", "#0ea5e9", "#9333ea", "#dc2626", "#0d9488"];
+  const members = state.members.slice();
+  const color = palette[members.length % palette.length];
+  members.push({ id: "m_" + Date.now().toString(36), name: name.trim(), color });
+  await store.saveMembers(members);
+}
+
+async function editMember(member) {
+  const name = prompt("メンバー名を編集（空欄で削除）", member.name);
+  if (name === null) return; // キャンセル
+  let members = state.members.slice();
+  if (!name.trim()) {
+    if (!confirm(`「${member.name}」を削除しますか？（割り当て済みの予定は「未割り当て」になります）`)) return;
+    members = members.filter((m) => m.id !== member.id);
+  } else {
+    members = members.map((m) => (m.id === member.id ? { ...m, name: name.trim() } : m));
+  }
+  await store.saveMembers(members);
 }
 
 // ---------------- 認証 UI ----------------
@@ -173,7 +207,7 @@ function renderAuth() {
 // ---------------- 入出力 ----------------
 function exportJSON() {
   const data = { workspaceId, exportedAt: new Date().toISOString(),
-    categories: state.categories, events: state.events };
+    categories: state.categories, members: state.members, events: state.events };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = el("a", { href: URL.createObjectURL(blob),
     download: `schedule-${ymd(new Date())}.json` });
@@ -231,10 +265,12 @@ function bindUI() {
 async function main() {
   bindUI();
   state.categories = store.getCategories?.() || [];
+  state.members = store.getMembers?.() || [];
 
   store.on("change", () => {
     state.events = store.getEvents();
     state.categories = store.getCategories();
+    state.members = store.getMembers();
     renderFilterBar();
     render();
   });
@@ -247,6 +283,7 @@ async function main() {
   await store.init();
   state.events = store.getEvents();
   state.categories = store.getCategories();
+  state.members = store.getMembers();
   renderAuth();
   renderFilterBar();
   render();

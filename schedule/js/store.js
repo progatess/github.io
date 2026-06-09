@@ -3,7 +3,7 @@
 // - なければ LocalStore（localStorage・ログイン不要・この端末のみ）
 // どちらも同じインターフェイスを提供し、UI 側は保存先を意識しない。
 
-import { firebaseConfig, workspaceId, defaultCategories, isCloudEnabled } from "./config.js";
+import { firebaseConfig, workspaceId, defaultCategories, defaultMembers, isCloudEnabled } from "./config.js";
 import { uid } from "./util.js";
 
 // 簡易イベントエミッタ
@@ -23,17 +23,20 @@ class LocalStore extends Emitter {
     this.mode = "local";
     this.eventsKey = `schedule.events.${workspaceId}`;
     this.catKey = "schedule.categories";
+    this.memKey = "schedule.members";
     this.user = { name: "あなた", email: "local", uid: "local" };
   }
 
   async init() {
     if (!localStorage.getItem(this.catKey))
       localStorage.setItem(this.catKey, JSON.stringify(defaultCategories));
+    if (!localStorage.getItem(this.memKey))
+      localStorage.setItem(this.memKey, JSON.stringify(defaultMembers));
     if (!localStorage.getItem(this.eventsKey))
       localStorage.setItem(this.eventsKey, JSON.stringify([]));
     // 別タブでの変更も反映
     window.addEventListener("storage", (e) => {
-      if (e.key === this.eventsKey || e.key === this.catKey) this.emit("change");
+      if (e.key === this.eventsKey || e.key === this.catKey || e.key === this.memKey) this.emit("change");
     });
     this.emit("change");
     this.emit("auth", this.user);
@@ -44,6 +47,8 @@ class LocalStore extends Emitter {
 
   getEvents() { return this._read(this.eventsKey); }
   getCategories() { return this._read(this.catKey); }
+  getMembers() { return this._read(this.memKey); }
+  async saveMembers(members) { this._write(this.memKey, members); }
 
   async addEvent(ev) {
     const list = this.getEvents();
@@ -69,6 +74,7 @@ class LocalStore extends Emitter {
   importData(data) {
     if (Array.isArray(data.events)) localStorage.setItem(this.eventsKey, JSON.stringify(data.events));
     if (Array.isArray(data.categories)) localStorage.setItem(this.catKey, JSON.stringify(data.categories));
+    if (Array.isArray(data.members)) localStorage.setItem(this.memKey, JSON.stringify(data.members));
     this.emit("change");
   }
 }
@@ -82,6 +88,7 @@ class FirebaseStore extends Emitter {
     this.mode = "cloud";
     this.events = [];
     this.categories = defaultCategories.slice();
+    this.members = defaultMembers.slice();
     this.user = null;
     this._unsub = null;
   }
@@ -125,6 +132,8 @@ class FirebaseStore extends Emitter {
 
   getEvents() { return this.events; }
   getCategories() { return this.categories; }
+  getMembers() { return this.members; }
+  async saveMembers(members) { this.members = members; this.emit("change"); }
 
   async addEvent(ev) {
     const now = new Date().toISOString();

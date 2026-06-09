@@ -139,6 +139,37 @@ button { font-family: inherit; }
 .wevent .we-time { color: var(--muted); font-size: 10px; }
 .wevent.done .we-title { text-decoration: line-through; opacity: .65; }
 
+/* ---------- Week (member x day resource grid) ---------- */
+.wres { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.wres-caption { font-size: 13px; color: var(--muted); padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.wres-scroll { overflow-x: auto; }
+.wres-grid { display: grid; grid-template-columns: 132px repeat(7, minmax(148px, 1fr)); min-width: 920px; }
+
+.wres-corner { position: sticky; left: 0; z-index: 3; background: #f8fafc; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 10px; font-size: 12px; font-weight: 600; color: var(--muted); display: flex; align-items: center; }
+.wres-dayhead { text-align: center; padding: 8px 4px; background: #f8fafc; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.wres-dayhead .wd-name { display: block; font-size: 12px; color: var(--muted); }
+.wres-dayhead .wd-date { font-size: 16px; font-weight: 700; }
+.wres-dayhead.dow-0 .wd-name, .wres-dayhead.dow-0 .wd-date { color: #ef4444; }
+.wres-dayhead.dow-6 .wd-name, .wres-dayhead.dow-6 .wd-date { color: #3b82f6; }
+.wres-dayhead.today { background: #eef2ff; }
+.wres-dayhead.today .wd-date { color: var(--primary); }
+
+.wres-member { position: sticky; left: 0; z-index: 2; background: var(--surface); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; }
+.wres-member:hover { background: #f8fafc; }
+.wres-member .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.wres-member .mname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.wres-cell { border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 4px; min-height: 62px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+.wres-cell.weekend { background: #fef6f6; }
+.wres-cell.today { background: #f5f7ff; }
+.wres-cell:hover { box-shadow: inset 0 0 0 2px rgba(79,109,245,.12); }
+.rev { font-size: 11px; padding: 3px 6px; border-radius: 5px; cursor: pointer; overflow: hidden; }
+.rev-time { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.rev-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.rev.done .rev-title { text-decoration: line-through; opacity: .6; }
+.add-member { margin: 10px 14px; background: var(--surface); border: 1px dashed var(--border); color: var(--muted); padding: 8px 14px; border-radius: 9px; cursor: pointer; font-size: 13px; }
+.add-member:hover { background: #f8fafc; color: var(--text); }
+
 /* ---------- Dashboard ---------- */
 .dash-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 16px; }
 .dash-head h2 { margin: 0; font-size: 20px; }

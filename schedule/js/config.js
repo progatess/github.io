@@ -28,5 +28,12 @@ export const defaultCategories = [
   { id: "other",    name: "その他",       color: "#64748b" },
 ];
 
+// 既定メンバー（担当者）。週表示の各行になります。アプリ内で追加・改名・削除可能。
+export const defaultMembers = [
+  { id: "m_self", name: "自分",       color: "#4f6df5" },
+  { id: "m_2",    name: "メンバー2",  color: "#16a34a" },
+  { id: "m_3",    name: "メンバー3",  color: "#db2777" },
+];
+
 // Firebase の設定が入っているか
 export const isCloudEnabled = Boolean(firebaseConfig.apiKey);
